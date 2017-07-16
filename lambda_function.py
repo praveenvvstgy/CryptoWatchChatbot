@@ -215,14 +215,6 @@ def make_bitcoin_spot_price(intent_request):
 		)
 
 def make_ethereum_spot_price(intent_request):
-	"""
-	Performs dialog management and fulfillment for filling a w9 form.
-
-	Beyond fulfillment, the implementation for this intent demonstrates the following:
-	1) Use of elicitSlot in slot validation and re-prompting
-	2) Use of confirmIntent to support the confirmation of inferred slot values, when confirmation is required
-	on the bot model and the inferred slot values fully specify the intent.
-	"""
 	source = intent_request['invocationSource']
 	output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
 
@@ -233,6 +225,20 @@ def make_ethereum_spot_price(intent_request):
 			{
 				'contentType': 'PlainText',
 				'content': 'The price of Ethereum now is {}'.format(ethereum_spot_price())
+			}
+		)
+
+def make_litecoin_spot_price(intent_request):
+	source = intent_request['invocationSource']
+	output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+
+	if source == 'DialogCodeHook':
+		return close(
+			output_session_attributes,
+			'Fulfilled',
+			{
+				'contentType': 'PlainText',
+				'content': 'The price of Litecoin now is {}'.format(litecoin_spot_price())
 			}
 		)
 
@@ -253,6 +259,8 @@ def dispatch(intent_request):
 		return make_bitcoin_spot_price(intent_request)
 	elif intent_name == 'EthereumSpotPriceIntent':
 		return make_ethereum_spot_price(intent_request)
+	elif intent_name == 'LitecoinSpotPriceIntent':
+		return make_litecoin_spot_price(intent_request)
 	raise Exception('Intent with name ' + intent_name + ' not supported')
 
 
