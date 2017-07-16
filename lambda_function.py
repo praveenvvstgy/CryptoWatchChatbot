@@ -210,7 +210,7 @@ def make_bitcoin_spot_price(intent_request):
 			'Fulfilled',
 			{
 				'contentType': 'PlainText',
-				'content': 'The price of Bitcoin now is {}'.format(ethereum_spot_price())
+				'content': 'The price of Bitcoin now is {}'.format(bitcoin_spot_price())
 			}
 		)
 
