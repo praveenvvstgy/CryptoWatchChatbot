@@ -43,8 +43,8 @@ urllib3-1.21.1.dist-info/top_level.txt,sha256=EMiXL2sKrTcmrMxIHTqdc3ET54pQI2Y072
 urllib3-1.21.1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
 urllib3/contrib/_securetransport/low_level.pyc,,
 urllib3/filepost.pyc,,
-urllib3/contrib/__init__.pyc,,
 urllib3/util/response.pyc,,
+urllib3/contrib/__init__.pyc,,
 urllib3/contrib/securetransport.pyc,,
 urllib3/packages/backports/__init__.pyc,,
 urllib3/packages/__init__.pyc,,

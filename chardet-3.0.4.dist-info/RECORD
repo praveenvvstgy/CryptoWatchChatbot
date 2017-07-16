@@ -46,17 +46,18 @@ chardet-3.0.4.dist-info/WHEEL,sha256=o2k-Qa-RMNIJmUdIc7KU6VWR_ErNRbWNlxDIpl7lm34
 chardet-3.0.4.dist-info/entry_points.txt,sha256=fAMmhu5eJ-zAJ-smfqQwRClQ3-nozOCmvJ6-E8lgGJo,60
 chardet-3.0.4.dist-info/metadata.json,sha256=0htbRM18ujyGZDdfowgAqj6Hq2eQtwzwyhaEveKntgo,1375
 chardet-3.0.4.dist-info/top_level.txt,sha256=AowzBbZy4x8EirABDdJSLJZMkJ_53iIag8xfKR6D7kI,8
-../../bin/chardetect,sha256=MD99CDR2TVDNNThdGesug63odsqBTEqQYDau_pOkm3I,274
+../../bin/chardetect,sha256=Si5JglEKbYEJ9lUp7lvXxaEHQfOwbZzqRUyTNTPrGQw,220
 chardet-3.0.4.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
-chardet/euctwprober.pyc,,
 chardet/big5freq.pyc,,
 chardet/langthaimodel.pyc,,
 chardet/sbcharsetprober.pyc,,
+chardet/euctwprober.pyc,,
 chardet/big5prober.pyc,,
 chardet/cp949prober.pyc,,
 chardet/langgreekmodel.pyc,,
 chardet/gb2312prober.pyc,,
 chardet/compat.pyc,,
+chardet/euckrfreq.pyc,,
 chardet/chardistribution.pyc,,
 chardet/langturkishmodel.pyc,,
 chardet/latin1prober.pyc,,
@@ -88,4 +89,3 @@ chardet/codingstatemachine.pyc,,
 chardet/gb2312freq.pyc,,
 chardet/jisfreq.pyc,,
 chardet/__init__.pyc,,
-chardet/euckrfreq.pyc,,

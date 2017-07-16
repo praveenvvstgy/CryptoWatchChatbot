@@ -16,10 +16,10 @@ coinbase-2.0.6.dist-info/metadata.json,sha256=ikF9hBR5Z5XnnmRshaYWOmXGNG_KgBkJV6
 coinbase-2.0.6.dist-info/top_level.txt,sha256=FqvpAFFmdtS4-fOxSmRS40U0UFmzzf6C3YI0Hfc3n80,9
 coinbase-2.0.6.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
 coinbase/__init__.pyc,,
-coinbase/wallet/compat.pyc,,
 coinbase/wallet/client.pyc,,
-coinbase/wallet/auth.pyc,,
+coinbase/wallet/__init__.pyc,,
 coinbase/wallet/util.pyc,,
+coinbase/wallet/compat.pyc,,
 coinbase/wallet/model.pyc,,
 coinbase/wallet/error.pyc,,
-coinbase/wallet/__init__.pyc,,
+coinbase/wallet/auth.pyc,,
