@@ -149,9 +149,14 @@ def build_validation_result(is_valid, violated_slot, message_content):
 	}
 
 
-def validate_user_form_details(name):
-	if len(name) < 3:
-		return build_validation_result(False, 'NameType', 'That name is invalid, can you please enter your name again!')
+def validate_watch(slots):
+	if not slots["price"]:
+		return build_validation_result(False, 'price', 'What price should Bitcoin reach when you want me to notify')
+	price = slots["price"]
+	if price < 0:
+		return build_validation_result(False, 'price', 'Price cannot be less than zero, please enter the BTC price at which I should alert you again')
+	if not slots["phone"]:
+		return build_validation_result(False, 'phone', "What is your phone number? I will send a text when Bitcoin reaches {} USD".format(price))
 
 	return build_validation_result(True, None, None)
 
@@ -242,6 +247,22 @@ def make_litecoin_spot_price(intent_request):
 			}
 		)
 
+def make_bitcoin_watch(intent_request):
+	source = intent_request['invocationSource']
+	output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+
+	if source == 'DialogCodeHook':
+		slots = intent_request['currentIntent']['slots']
+        validation_result = validate_watch(slots)
+		return close(
+			output_session_attributes,
+			'Fulfilled',
+			{
+				'contentType': 'PlainText',
+				'content': 'The price of Litecoin now is {}'.format(litecoin_spot_price())
+			}
+		)
+
 """ --- Intents --- """
 
 
@@ -261,6 +282,8 @@ def dispatch(intent_request):
 		return make_ethereum_spot_price(intent_request)
 	elif intent_name == 'LitecoinSpotPriceIntent':
 		return make_litecoin_spot_price(intent_request)
+	elif intent_name == 'BitcoinWatchIntent':
+		return make_bitcoin_watch(intent_request)
 	raise Exception('Intent with name ' + intent_name + ' not supported')
 
 
