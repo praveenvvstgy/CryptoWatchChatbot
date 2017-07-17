@@ -3,11 +3,37 @@ import logging
 import time
 from coinbase.wallet.client import Client
 from coinbase.wallet.model import APIObject
+from twilio.rest import Client as TwilioClient
+import boto3
+from random import randint
+
 
 api_key = os.environ['api_key']
 api_secret = os.environ['api_secret']
 
+twilio_account_sid = os.environ['twilio_account_sid']
+twilio_auth_token = os.environ['twilio_auth_token']
+
+sns_access_secret = os.environ['sns_access_secret']
+sns_access_key = os.environ['sns_access_key']
+
 client = Client(api_key, api_secret)
+
+twilio_client = TwilioClient(twilio_account_sid, twilio_auth_token)
+
+sns_client = boto3.client(
+	"sns",
+	aws_access_key_id=sns_access_key,
+	aws_secret_access_key=sns_access_secret,
+	region_name="us-east-1"
+)
+
+dynamodb = boto3.resource(
+	"dynamodb",
+	aws_access_key_id=sns_access_key,
+	aws_secret_access_key=sns_access_secret,
+	region_name="us-east-1"
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -69,6 +95,7 @@ def litecoin_buy_price():
 
 
 def elicit_slot(session_attributes, intent_name, slots, slot_to_elicit, message, response_card):
+	print "slots in elicit: {}".format(slots)
 	return {
 		'sessionAttributes': session_attributes,
 		'dialogAction': {
@@ -138,6 +165,139 @@ def build_response_card(title, subtitle, options):
 		}]
 	}
 
+""" --- Helper Functions for Watch --- """
+
+def random_with_N_digits(n):
+	range_start = 10**(n-1)
+	range_end = (10**n)-1
+	return str(randint(range_start, range_end))
+
+""" --- DynamoDB --- """
+
+def get_user_record(user):
+	users_table = dynamodb.Table('users')
+	user_record = users_table.get_item(Key = {
+		'userId': user
+		})
+	if 'Item' in user_record:
+		return user_record['Item']
+	else:
+		return None
+
+def get_phone_records_for_user(user):
+	user_record = get_user_record(user)
+	if not user_record:
+		return None
+	else:
+		phone_record_for_user = None
+		if user_record:
+			if 'phones' in user_record and len(user_record['phones']) > 0:
+				return user_record['phones']
+		return None
+
+def get_phone_record_for_user(user, phone):
+	user_record = get_user_record(user)
+	if not user_record:
+		return None
+	else:
+		phone_record_for_user = None
+		if user_record:
+			if 'phones' in user_record and len(user_record['phones']) > 0:
+				for record in user_record['phones']:
+					if record['phoneNumber'] == phone:
+						return record
+		return None
+
+def update_user_phone_record(user, phone_record):
+	users_table = dynamodb.Table('users')
+	user_record = get_user_record(user)
+	if not user_record:
+		users_table.put_item(Item = {
+			'userId': user,
+			'phones': phone_record
+			})
+	else:
+		users_table.update_item(
+			Key = {
+			'userId': user
+			},
+			UpdateExpression='SET phones = :val1',
+			ExpressionAttributeValues={
+				':val1': phone_record
+			}
+		)
+
+def update_key_value_for_user(key, matchingValue, user, withkey, withValue):
+	phone_records = get_phone_records_for_user(user)
+	new_records = []
+	for record in phone_records:
+		if record[key] == matchingValue:
+			record[withkey] = withValue
+			new_records.append(record)
+		else:
+			new_records.append(record)
+	update_user_phone_record(user, new_records)
+
+def update_token_for_phone_and_user(phone, user, token):
+	update_key_value_for_user('phoneNumber', phone, user, 'token', token)
+
+def insert_user_phone_record(user, new_phone_record):
+	user_record = get_user_record(user)
+	if not user_record:
+		update_user_phone_record(user, [new_phone_record])
+	else:
+		phone_record = get_phone_records_for_user(user)
+		if phone_record and len(phone_record) > 0:
+			phone_record.append(new_phone_record)
+			update_user_phone_record(user, phone_record)
+		else:
+			update_user_phone_record(user, [new_phone_record])
+
+def is_number_verified_for_user(user, phone):
+	user_record = get_user_record
+	if not user_record:
+		return False
+	else:
+		phone_record = get_phone_record_for_user(user, phone)
+		if phone_record:
+			return phone_record['verified']
+		else:
+			return False
+
+def verify_user_phone(phone, user):
+	token = random_with_N_digits(4)
+	send_sms(phone, "Your Crypto Watch verification code is: {}".format(token))
+	phone_record = get_phone_record_for_user(user, phone)
+	if phone_record:
+		update_token_for_phone_and_user(phone, user, token)
+	else:
+		insert_user_phone_record(user, {
+				'phoneNumber': phone,
+				'token': token,
+				'verified': False
+				})
+
+def send_sms(phone, message):
+	twilio_client.messages.create(to=phone, from_="+14159663963 ",
+                                 body=message)
+	print "Sending SMS to {} with {}".format(phone, message)
+
+def verify_user_phone_with_token(user, phone, token):
+	if is_number_verified_for_user(phone, user):
+		return True
+	else:
+		phone_record = get_phone_record_for_user(user, phone)
+		if phone_record and phone_record['token'] == token:
+			update_key_value_for_user('phoneNumber', phone, user, 'verified', True)
+			return True
+		return False
+
+def start_phone_verification(phone, user):
+	if is_number_verified_for_user(user, phone):
+		return True
+	else:
+		verify_user_phone(phone, user)
+		return False
 
 """ --- Helper Functions --- """
 
@@ -149,7 +309,7 @@ def build_validation_result(is_valid, violated_slot, message_content):
 	}
 
 
-def validate_watch(slots):
+def validate_watch(slots, user):
 	if not slots["price"]:
 		return build_validation_result(False, 'price', 'What price should Bitcoin reach when you want me to notify')
 	price = slots["price"]
@@ -157,13 +317,34 @@ def validate_watch(slots):
 		return build_validation_result(False, 'price', 'Price cannot be less than zero, please enter the BTC price at which I should alert you again')
 	if not slots["phone"]:
 		return build_validation_result(False, 'phone', "What is your phone number? I will send a text when Bitcoin reaches {} USD".format(price))
+	phone = slots["phone"]
+	try:
+		phone_number = twilio_client.lookups.phone_numbers(phone).fetch(type="carrier").phone_number
+	except Exception as e:
+		return build_validation_result(False, 'phone', "The phone number {} is invalid, retry again".format(phone))
 
+	if not slots["verification"]:
+		if not is_number_verified_for_user(user, phone_number):
+			try:
+				if not start_phone_verification(phone_number, user):
+					return build_validation_result(False, 'verification', "Enter the verification code sent to {}".format(phone_number))
+			except Exception as e:
+				return build_validation_result(False, 'phone', "Sending SMS failed. Enter phone number again")
+		else:
+			return build_validation_result(True, None, None)
+
+	verification = slots["verification"]
+
+	if not verify_user_phone_with_token(user, phone_number, verification):
+		return build_validation_result(False, 'verification', "The verification token is incorrect, try again")
+		
 	return build_validation_result(True, None, None)
 
 def build_options(slot):
 	"""
 	Build a list of potential options for a given slot, to be used in responseCard generation.
 	"""
+	return None
 	if slot == 'NameType':
 		return None
 	elif slot == 'Date':
@@ -250,16 +431,37 @@ def make_litecoin_spot_price(intent_request):
 def make_bitcoin_watch(intent_request):
 	source = intent_request['invocationSource']
 	output_session_attributes = intent_request['sessionAttributes'] if intent_request['sessionAttributes'] is not None else {}
+	userId = intent_request['userId']
+	print "slots are: {}".format(intent_request['currentIntent']['slots'])
 
 	if source == 'DialogCodeHook':
 		slots = intent_request['currentIntent']['slots']
-        validation_result = validate_watch(slots)
+		if slots["phone"]:
+			output_session_attributes["phone"] = slots["phone"]
+		else:
+			if "phone" in output_session_attributes:
+				slots["phone"] = output_session_attributes["phone"]
+		validation_result = validate_watch(slots, userId)
+		if not validation_result['isValid']:
+			slots[validation_result['violatedSlot']] = None
+			return elicit_slot(
+				output_session_attributes,
+				intent_request['currentIntent']['name'],
+				slots,
+				validation_result['violatedSlot'],
+				validation_result['message'],
+				build_response_card(
+					'Specify {}'.format(validation_result['violatedSlot']),
+					validation_result['message']['content'],
+					build_options(validation_result['violatedSlot'])
+				)
+			)
 		return close(
 			output_session_attributes,
 			'Fulfilled',
 			{
 				'contentType': 'PlainText',
-				'content': 'The price of Litecoin now is {}'.format(litecoin_spot_price())
+				'content': "Successfuly set the alarm!"
 			}
 		)
 
